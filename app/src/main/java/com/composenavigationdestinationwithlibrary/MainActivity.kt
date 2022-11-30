@@ -12,20 +12,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.Button
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
-import androidx.navigation.NavController
-import androidx.navigation.NavType
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
+import com.composenavigationdestinationwithlibrary.destinations.PostScreenDestination
+import com.composenavigationdestinationwithlibrary.destinations.ProfileScreenDestination
 import com.composenavigationdestinationwithlibrary.ui.theme.ComposeNavigationDestinationWithLibraryTheme
-import java.time.Instant
+import com.ramcosta.composedestinations.DestinationsNavHost
+import com.ramcosta.composedestinations.annotation.Destination
+import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import java.time.LocalDateTime
-import java.time.ZoneId
 
 class MainActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.O)
@@ -33,58 +29,21 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             ComposeNavigationDestinationWithLibraryTheme {
-                val navController = rememberNavController()
-                NavHost(
-                    navController = navController,
-                    startDestination = "login"
-                ) {
-                    composable("login") {
-                        LoginScreen(navController)
-                    }
-                    composable(
-                        route = "profile/{name}/{userId}/{timestamp}",
-                        arguments = listOf(
-                            navArgument("name") {
-                                type = NavType.StringType
-                            },
-                            navArgument("userId") {
-                                type = NavType.StringType
-                            },
-                            navArgument("timestamp") {
-                                type = NavType.LongType
-                            },
-                        )
-                    ) {
-                        val name = it.arguments?.getString("name")!!
-                        val userId = it.arguments?.getString("userId")!!
-                        val timestamp = it.arguments?.getLong("timestamp")!!
 
-                        ProfileScreen(
-                            navController = navController,
-                            name = name,
-                            userId = userId,
-                            created = timestamp
-                        )
-                    }
-                    composable("post/{showOnlyPostsByUser}", arguments = listOf(
-                        navArgument("showOnlyPostsByUser") {
-                            type = NavType.BoolType
-                            defaultValue = false
-                        }
-                    )) {
-                        val showOnlyPostsByUser =
-                            it.arguments?.getBoolean("showOnlyPostsByUser") ?: false
-                        PostScreen(showOnlyPostsByUser)
-                    }
-                }
+                //Don't forget to rebuild project after adding annotations to screens
+                //to create generated classes for Destinations
+
+                DestinationsNavHost(navGraph = NavGraphs.root)
             }
         }
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
+@Destination(start = true)
 @Composable
 fun LoginScreen(
-    navController: NavController
+    navigator: DestinationsNavigator
 ) {
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -93,7 +52,15 @@ fun LoginScreen(
     ) {
         Text("Login Screen")
         Button(onClick = {
-            navController.navigate("profile/philipp/userid/123456789")
+            navigator.navigate(
+                ProfileScreenDestination(
+                    User(
+                        name = "Nika",
+                        id = "userId",
+                        created = LocalDateTime.now()
+                    )
+                )
+            )
         }) {
             Text("Go to Profile Screen")
         }
@@ -101,22 +68,12 @@ fun LoginScreen(
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
+@Destination
 @Composable
 fun ProfileScreen(
-    navController: NavController,
-    name: String,
-    userId: String,
-    created: Long
+    navigator: DestinationsNavigator,
+    user: User
 ) {
-    val user = remember {
-        User(
-            name = name,
-            id = userId,
-            created = LocalDateTime.ofInstant(
-                Instant.ofEpochMilli(created), ZoneId.systemDefault()
-            )
-        )
-    }
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
@@ -124,13 +81,14 @@ fun ProfileScreen(
     ) {
         Text("Profile Screen: $user", textAlign = TextAlign.Center)
         Button(onClick = {
-            navController.navigate("post/true")
+            navigator.navigate(PostScreenDestination())
         }) {
             Text("Go to Post Screen")
         }
     }
 }
 
+@Destination
 @Composable
 fun PostScreen(
     showOnlyPostsByUser: Boolean = false
